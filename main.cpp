@@ -8,6 +8,8 @@
 #include <GLFW/glfw3.h>
 #include <random>
 
+#include "SOIL/SOIL.h"
+
 static const GLsizei WIDTH = 512, HEIGHT = 512; //размеры окна
 static int filling = 0;
 static bool keys[1024]; //массив состояний кнопок - нажата/не нажата
@@ -20,6 +22,7 @@ GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
 Camera camera(float3(0.0f, 5.0f, 30.0f));
+GLuint texture1;
 
 class DSA {
 private:
@@ -364,6 +367,25 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
     normals_vec.push_back(N.z);
   }
 
+  // ====================
+  // Texture 1
+  // ====================
+  glGenTextures(1, &texture1);
+  glBindTexture(GL_TEXTURE_2D, texture1); // All upcoming GL_TEXTURE_2D operations now have effect on our texture object
+  // Set our texture parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// Set texture wrapping to GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // Set texture filtering
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // Load, create texture and generate mipmaps
+  int width, height;
+  unsigned char* image = SOIL_load_image("grass.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  SOIL_free_image_data(image);
+  glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
+
 
   GLuint vboVertices, vboIndices, vboNormals, vboTexCoords;
 
@@ -506,6 +528,10 @@ int main(int argc, char** argv)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); GL_CHECK_ERRORS;
 
     program.StartUseShader(); GL_CHECK_ERRORS;
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    glUniform1i(glGetUniformLocation(program.GetProgram(), "ourTexture1"), 0);
 
 		//обновляем матрицы камеры и проекции каждый кадр
     float4x4 view       = camera.GetViewMatrix();
