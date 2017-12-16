@@ -12,6 +12,7 @@
 
 static const GLsizei WIDTH = 512, HEIGHT = 512; //размеры окна
 static int filling = 0;
+int normals = 0;
 static bool keys[1024]; //массив состояний кнопок - нажата/не нажата
 static GLfloat lastX = 400, lastY = 300; //исходное положение мыши
 static bool firstMouse = true;
@@ -144,10 +145,12 @@ void OnKeyboardPressed(GLFWwindow* window, int key, int scancode, int action, in
 		}
 		break;
   case GLFW_KEY_1:
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    normals = 0;
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     break;
   case GLFW_KEY_2:
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    normals = 1;
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     break;
 	default:
 		if (action == GLFW_PRESS)
@@ -548,6 +551,7 @@ int main(int argc, char** argv)
     program.SetUniform("view",       view);       GL_CHECK_ERRORS;
     program.SetUniform("projection", projection); GL_CHECK_ERRORS;
     program.SetUniform("model",      model);
+    program.SetUniform("draw_normals", normals);
 
     //рисуем плоскость
     glBindVertexArray(vaoTriStrip);
