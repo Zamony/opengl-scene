@@ -2,5 +2,4 @@
 
 !.gitignore
 !main.cpp
-!./shaders/*
-!./shaders/*
+!shaders
