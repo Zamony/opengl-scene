@@ -2,5 +2,5 @@
 
 !.gitignore
 !main.cpp
-!shaders/fragment.glsl
-!shaders/vertex.glsl
+!./shaders/*
+!./shaders/*
