@@ -260,8 +260,8 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
       vertices_vec.push_back(yy);
       vertices_vec.push_back(zz);
 
-      texcoords_vec.push_back(x / float(cols - 1)); // вычисляем первую текстурную координату u, для плоскости это просто относительное положение вершины
-      texcoords_vec.push_back(z / float(rows - 1)); // аналогично вычисляем вторую текстурную координату v
+      texcoords_vec.push_back(x / float(cols - 1) * cols); // вычисляем первую текстурную координату u, для плоскости это просто относительное положение вершины
+      texcoords_vec.push_back(z / float(rows - 1) * rows); // аналогично вычисляем вторую текстурную координату v
     }
   }
 
@@ -383,6 +383,8 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
   unsigned char* image = SOIL_load_image("grass.jpg", &width, &height, 0, SOIL_LOAD_RGB);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
   glGenerateMipmap(GL_TEXTURE_2D);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   SOIL_free_image_data(image);
   glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
 
