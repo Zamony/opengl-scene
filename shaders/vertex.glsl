@@ -11,6 +11,7 @@ out vec3 vNormal;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform int is_grass;
 
 
 void main()

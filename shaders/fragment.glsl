@@ -10,6 +10,7 @@ out vec4 color;
 
 uniform sampler2D ourTexture1;
 uniform int draw_normals;
+uniform int is_grass;
 
 
 float fog_exp2(
@@ -33,8 +34,11 @@ void main()
     float fogDistance = gl_FragCoord.z / gl_FragCoord.w;
     float fogAmount = fog_exp2(fogDistance, FOG_DENSITY);
     vec4 fogColor = vec4(1.0, 1.0, 1.0, 1.0); // white
+    if ( is_grass == 1 ){
+      kd = 0.3;
+    }
     vec4 color2 = vec4(kd * texture(ourTexture1, vTexCoords));
-    gl_FragColor = mix(color2, fogColor, fogAmount);
+    gl_FragColor = color2;//mix(color2, fogColor, fogAmount);
   } else {
     vec3 vNormal2 = normalize(vNormal);
     gl_FragColor  = vec4( (vNormal2.x+1.0f)*0.5f, (vNormal2.y+1.0f)*0.5f, (vNormal2.z+1.0f)*0.5f, 1.0f  );

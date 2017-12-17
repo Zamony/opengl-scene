@@ -9,6 +9,8 @@
 #include <random>
 
 #include "SOIL/SOIL.h"
+#define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
+#include "tiny_obj_loader.h"
 
 static const GLsizei WIDTH = 512, HEIGHT = 512; //размеры окна
 static int filling = 0;
@@ -24,6 +26,8 @@ GLfloat lastFrame = 0.0f;
 
 Camera camera(float3(0.0f, 10.0f, 0.0f));
 GLuint texture1;
+
+float shift1 = 0;
 
 class DSA {
 private:
@@ -252,7 +256,7 @@ void doCameraMovement(Camera &camera, GLfloat deltaTime)
   if (keys[GLFW_KEY_D])
     camera.ProcessKeyboard(RIGHT, deltaTime);
 
-  std::cout << camera.pos.x << " " << camera.pos.y << " " << camera.pos.z << "\n";
+  //std::cout << camera.pos.x << " " << camera.pos.y << " " << camera.pos.z << "\n";
 }
 
 
@@ -297,7 +301,11 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
       float zz = -size / 2 + z*size / rows;
       // float yy = -1.0f;
       //float r = sqrt(xx*xx + zz*zz);
+
       float yy = 4.8f * dsa.sample(x, z);//5.0f * (r != 0.0f ? sin(r) / r : 1.0f);
+      if ( z == 0 && x == 0 ){
+        shift1 = yy;  
+      }
 
       vertices_vec.push_back(xx);
       vertices_vec.push_back(yy);
@@ -577,6 +585,76 @@ int main(int argc, char** argv)
   glEnable(GL_DEPTH_TEST);  GL_CHECK_ERRORS;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  std::vector<GLfloat> myvertices;
+  {
+    std::string inputfile = "tree_bad.obj";
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+      
+    std::string err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, inputfile.c_str());
+      
+    if (!err.empty()) { // `err` may contain warning message.
+      std::cerr << err << std::endl;
+    }
+
+    if (!ret) {
+      exit(1);
+    }
+
+    // Loop over shapes
+    for (size_t s = 0; s < shapes.size(); s++) {
+      // Loop over faces(polygon)
+      size_t index_offset = 0;
+      for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+        int fv = shapes[s].mesh.num_face_vertices[f];
+
+        // Loop over vertices in the face.
+        for (size_t v = 0; v < fv; v++) {
+          // access to vertex
+          tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+          tinyobj::real_t vx = attrib.vertices[3*idx.vertex_index+0];
+          tinyobj::real_t vy = attrib.vertices[3*idx.vertex_index+1];
+          tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
+          myvertices.push_back(vx);
+          myvertices.push_back(vy+shift1);
+          myvertices.push_back(vz);
+          // tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
+          // tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
+          // tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+          // tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
+          // tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
+          // Optional: vertex colors
+          // tinyobj::real_t red = attrib.colors[3*idx.vertex_index+0];
+          // tinyobj::real_t green = attrib.colors[3*idx.vertex_index+1];
+          // tinyobj::real_t blue = attrib.colors[3*idx.vertex_index+2];
+        }
+        index_offset += fv;
+
+        // per-face material
+        shapes[s].mesh.material_ids[f];
+      }
+    }
+  }
+
+  GLuint treevbo;
+  glGenBuffers(1, &treevbo);
+  glBindBuffer(GL_ARRAY_BUFFER, treevbo);
+  glBufferData(GL_ARRAY_BUFFER, myvertices.size() * sizeof(GLfloat), &myvertices[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  
+  GLuint treevao;
+  glGenVertexArrays(1, &treevao);
+  glBindVertexArray(treevao);
+  glBindBuffer(GL_ARRAY_BUFFER, treevbo);
+
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+
 	//цикл обработки сообщений и отрисовки сцены каждый кадр
 	while (!glfwWindowShouldClose(window))
 	{
@@ -612,11 +690,19 @@ int main(int argc, char** argv)
     program.SetUniform("projection", projection); GL_CHECK_ERRORS;
     program.SetUniform("model",      model);
     program.SetUniform("draw_normals", normals);
+    program.SetUniform("is_grass", 0);
 
     //рисуем плоскость
     glBindVertexArray(vaoTriStrip);
     glDrawElements(GL_TRIANGLE_STRIP, triStripIndices, GL_UNSIGNED_INT, nullptr); GL_CHECK_ERRORS;
     glBindVertexArray(0); GL_CHECK_ERRORS;
+
+    program.SetUniform("is_grass", 1);
+
+    glBindVertexArray(treevao);
+    glEnableVertexAttribArray(0);
+    glDrawArrays(GL_TRIANGLES, 0, myvertices.size() / 3);
+    glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
 
     program.StopUseShader();
 
