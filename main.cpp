@@ -22,7 +22,7 @@ static bool g_capturedMouseJustNow = false;
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
-Camera camera(float3(0.0f, 5.0f, 30.0f));
+Camera camera(float3(0.0f, 10.0f, 0.0f));
 GLuint texture1;
 
 class DSA {
@@ -117,6 +117,23 @@ public:
         return values[(x % (size - 1)) + (y % (size - 1)) * size];
     }
 
+    void normalize(){
+      float maxp = 0;
+      for (int i = 0; i < size; i++){
+        for (int j = 0; j < size; j++){
+          float val = abs(sample(i, j));
+          maxp = std::max( val, maxp );
+        }
+      }
+
+      for (int i = 0; i < size; i++){
+        for (int j = 0; j < size; j++){
+          float val = sample(i, j) / maxp;
+          setSample(i, j, val*val);
+        }
+      }
+    }
+
 };
 
 //функция для обработки нажатий на кнопки клавиатуры
@@ -205,6 +222,27 @@ void OnMouseScroll(GLFWwindow* window, double xoffset, double yoffset)
 
 void doCameraMovement(Camera &camera, GLfloat deltaTime)
 {
+
+  if ( camera.pos.z > 360/(2*6.0f) ){
+    camera.pos.z = camera.pos.z - 360/6.0f;
+    deltaTime += 0.06;
+  }
+
+  if ( camera.pos.x > 360/(2*6.0f) ){
+    camera.pos.x = camera.pos.x - 360/6.0f;
+    deltaTime += 0.06;
+  }
+
+  if ( camera.pos.z < -360/(2*6.0f) ){
+    camera.pos.z = camera.pos.z + 360/6.0f;
+    deltaTime += 0.06;
+  }
+
+  if ( camera.pos.x < -360/(2*6.0f) ){
+    camera.pos.x = camera.pos.x + 360/6.0f;
+    deltaTime += 0.06;
+  }
+
   if (keys[GLFW_KEY_W])
     camera.ProcessKeyboard(FORWARD, deltaTime);
   if (keys[GLFW_KEY_A])
@@ -213,6 +251,8 @@ void doCameraMovement(Camera &camera, GLfloat deltaTime)
     camera.ProcessKeyboard(BACKWARD, deltaTime);
   if (keys[GLFW_KEY_D])
     camera.ProcessKeyboard(RIGHT, deltaTime);
+
+  std::cout << camera.pos.x << " " << camera.pos.y << " " << camera.pos.z << "\n";
 }
 
 
@@ -245,7 +285,7 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
   std::vector<GLuint> indices_vec; //вектор индексов вершин для передачи шейдерной программе
   indices_vec.reserve(numIndices);
 
-  DSA dsa( int( pow(2, ceil(log2(rows))) ) + 1);
+  DSA dsa( 129 );
   dsa.generateTerrain();
 
   for (int z = 0; z < rows; ++z)
@@ -267,6 +307,26 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
       texcoords_vec.push_back(z / float(rows - 1) * rows); // аналогично вычисляем вторую текстурную координату v
     }
   }
+
+  // for (int z = 0; z < rows; ++z)
+  // {
+  //   for (int x = 0; x < cols; ++x)
+  //   {
+  //     //вычисляем координаты каждой из вершин 
+  //     float xx = -size + -size/2 + x*size / cols;
+  //     float zz = -size + -size / 2 + z*size / rows;
+  //     // float yy = -1.0f;
+  //     //float r = sqrt(xx*xx + zz*zz);
+  //     float yy = 4.8f * dsa.sample(x, z);//5.0f * (r != 0.0f ? sin(r) / r : 1.0f);
+
+  //     vertices_vec.push_back(xx);
+  //     vertices_vec.push_back(yy);
+  //     vertices_vec.push_back(zz);
+
+  //     texcoords_vec.push_back(x / float(cols - 1) * cols); // вычисляем первую текстурную координату u, для плоскости это просто относительное положение вершины
+  //     texcoords_vec.push_back(z / float(rows - 1) * rows); // аналогично вычисляем вторую текстурную координату v
+  //   }
+  // }
 
   //primitive restart - специальный индекс, который обозначает конец строки из треугольников в triangle_strip
   //после этого индекса формирование треугольников из массива индексов начнется заново - будут взяты следующие 3 индекса для первого треугольника
@@ -510,7 +570,7 @@ int main(int argc, char** argv)
   
   //Создаем и загружаем геометрию поверхности
   GLuint vaoTriStrip;
-  int triStripIndices = createTriStrip(100, 100, 40, vaoTriStrip);
+  int triStripIndices = createTriStrip(6*129, 6*129, 360, vaoTriStrip);
 
 
   glViewport(0, 0, WIDTH, HEIGHT);  GL_CHECK_ERRORS;
