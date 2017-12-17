@@ -12,6 +12,8 @@
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
 #include "tiny_obj_loader.h"
 
+#define TOTAL_SQUAERS 9
+
 static const GLsizei WIDTH = 512, HEIGHT = 512; //размеры окна
 static int filling = 0;
 int normals = 0;
@@ -305,10 +307,11 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
       // float yy = -1.0f;
       //float r = sqrt(xx*xx + zz*zz);
 
+      const float eps = 1e-4;
       float yy = 4.8f * dsa.sample(x, z);//5.0f * (r != 0.0f ? sin(r) / r : 1.0f);
       if ( !shrub_set && abs(xx) < 20 && abs(zz) < 20 ){
-        shiftx = xx;
         shifty = yy;
+        shiftx = xx;
         shiftz = zz;
         shrub_set = true;
       }
@@ -591,7 +594,7 @@ int main(int argc, char** argv)
   glEnable(GL_DEPTH_TEST);  GL_CHECK_ERRORS;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  std::vector<GLfloat> myvertices;
+  std::array<std::vector<GLfloat>, TOTAL_SQUAERS> myvertices;
   {
     std::string inputfile = "tree_bad.obj";
     tinyobj::attrib_t attrib;
@@ -623,9 +626,43 @@ int main(int argc, char** argv)
           tinyobj::real_t vx = attrib.vertices[3*idx.vertex_index+0];
           tinyobj::real_t vy = attrib.vertices[3*idx.vertex_index+1];
           tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
-          myvertices.push_back(vx+shiftx);
-          myvertices.push_back(vy+shifty);
-          myvertices.push_back(vz+shiftz);
+
+          myvertices[0].push_back(vx+shiftx-60);
+          myvertices[0].push_back(vy+shifty);
+          myvertices[0].push_back(vz+shiftz-60);
+
+          myvertices[1].push_back(vx+shiftx-60);
+          myvertices[1].push_back(vy+shifty);
+          myvertices[1].push_back(vz+shiftz+60);
+
+          myvertices[2].push_back(vx+shiftx-60);
+          myvertices[2].push_back(vy+shifty);
+          myvertices[2].push_back(vz+shiftz);
+
+          myvertices[3].push_back(vx+shiftx);
+          myvertices[3].push_back(vy+shifty);
+          myvertices[3].push_back(vz+shiftz+60);
+
+          myvertices[4].push_back(vx+shiftx);
+          myvertices[4].push_back(vy+shifty);
+          myvertices[4].push_back(vz+shiftz-60);
+
+          myvertices[5].push_back(vx+shiftx);
+          myvertices[5].push_back(vy+shifty);
+          myvertices[5].push_back(vz+shiftz);
+
+          myvertices[6].push_back(vx+shiftx+60);
+          myvertices[6].push_back(vy+shifty);
+          myvertices[6].push_back(vz+shiftz);
+
+          myvertices[7].push_back(vx+shiftx+60);
+          myvertices[7].push_back(vy+shifty);
+          myvertices[7].push_back(vz+shiftz-60);
+
+          myvertices[8].push_back(vx+shiftx+60);
+          myvertices[8].push_back(vy+shifty);
+          myvertices[8].push_back(vz+shiftz+60);
+
           // tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
           // tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
           // tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
@@ -644,21 +681,24 @@ int main(int argc, char** argv)
     }
   }
 
-  GLuint treevbo;
-  glGenBuffers(1, &treevbo);
-  glBindBuffer(GL_ARRAY_BUFFER, treevbo);
-  glBufferData(GL_ARRAY_BUFFER, myvertices.size() * sizeof(GLfloat), &myvertices[0], GL_STATIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  GLuint treevbo[TOTAL_SQUAERS];
+  glGenBuffers(TOTAL_SQUAERS, treevbo);
+  for (int i = 0; i < TOTAL_SQUAERS; i++){
+    glBindBuffer(GL_ARRAY_BUFFER, treevbo[i]);
+    glBufferData(GL_ARRAY_BUFFER, myvertices[i].size() * sizeof(GLfloat), &myvertices[i][0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+  }
   
-  GLuint treevao;
-  glGenVertexArrays(1, &treevao);
-  glBindVertexArray(treevao);
-  glBindBuffer(GL_ARRAY_BUFFER, treevbo);
+  GLuint treevao[TOTAL_SQUAERS];
+  glGenVertexArrays(TOTAL_SQUAERS, treevao);
+  for (int i = 0; i < TOTAL_SQUAERS; i++){
+    glBindVertexArray(treevao[i]);
+    glBindBuffer(GL_ARRAY_BUFFER, treevbo[i]);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+  }
 
 
 	//цикл обработки сообщений и отрисовки сцены каждый кадр
@@ -705,10 +745,12 @@ int main(int argc, char** argv)
 
     program.SetUniform("is_grass", 1);
 
-    glBindVertexArray(treevao);
-    glEnableVertexAttribArray(0);
-    glDrawArrays(GL_TRIANGLES, 0, myvertices.size() / 3);
-    glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
+    for (int i = 0; i < TOTAL_SQUAERS; i++){
+      glBindVertexArray(treevao[i]);
+      glEnableVertexAttribArray(0);
+      glDrawArrays(GL_TRIANGLES, 0, myvertices[i].size() / 3);
+      glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
+    }
 
     program.StopUseShader();
 
