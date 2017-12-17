@@ -27,7 +27,9 @@ GLfloat lastFrame = 0.0f;
 Camera camera(float3(0.0f, 10.0f, 0.0f));
 GLuint texture1;
 
-float shift1 = 0;
+float shiftx = 0;
+float shifty = 0;
+float shiftz = 0;
 
 class DSA {
 private:
@@ -292,6 +294,7 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
   DSA dsa( 129 );
   dsa.generateTerrain();
 
+  bool shrub_set = false;
   for (int z = 0; z < rows; ++z)
   {
     for (int x = 0; x < cols; ++x)
@@ -303,8 +306,11 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
       //float r = sqrt(xx*xx + zz*zz);
 
       float yy = 4.8f * dsa.sample(x, z);//5.0f * (r != 0.0f ? sin(r) / r : 1.0f);
-      if ( z == 0 && x == 0 ){
-        shift1 = yy;  
+      if ( !shrub_set && abs(xx) < 20 && abs(zz) < 20 ){
+        shiftx = xx;
+        shifty = yy;
+        shiftz = zz;
+        shrub_set = true;
       }
 
       vertices_vec.push_back(xx);
@@ -617,9 +623,9 @@ int main(int argc, char** argv)
           tinyobj::real_t vx = attrib.vertices[3*idx.vertex_index+0];
           tinyobj::real_t vy = attrib.vertices[3*idx.vertex_index+1];
           tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
-          myvertices.push_back(vx);
-          myvertices.push_back(vy+shift1);
-          myvertices.push_back(vz);
+          myvertices.push_back(vx+shiftx);
+          myvertices.push_back(vy+shifty);
+          myvertices.push_back(vz+shiftz);
           // tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
           // tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
           // tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
