@@ -33,6 +33,10 @@ float shiftx = 0;
 float shifty = 0;
 float shiftz = 0;
 
+float shiftx2 = 0;
+float shifty2 = 0;
+float shiftz2 = 0;
+
 class DSA {
 private:
     std::vector<float> values;
@@ -297,6 +301,7 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
   dsa.generateTerrain();
 
   bool shrub_set = false;
+  bool tree_set = false;
   for (int z = 0; z < rows; ++z)
   {
     for (int x = 0; x < cols; ++x)
@@ -314,6 +319,12 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
         shiftx = xx;
         shiftz = zz;
         shrub_set = true;
+      }
+      if ( shrub_set && !tree_set && abs(xx) < 12 && abs(zz) < 12 ){
+        shifty2 = yy;
+        shiftx2 = xx;
+        shiftz2 = zz;
+        tree_set = true;
       }
 
       vertices_vec.push_back(xx);
@@ -595,8 +606,9 @@ int main(int argc, char** argv)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   std::array<std::vector<GLfloat>, TOTAL_SQUAERS> myvertices;
+  std::array<std::vector<GLfloat>, TOTAL_SQUAERS> myvertices2;
   {
-    std::string inputfile = "tree_bad.obj";
+    std::string inputfile = "tree_good.obj";
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -680,6 +692,91 @@ int main(int argc, char** argv)
       }
     }
   }
+  {
+    std::string inputfile = "bush.obj";
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+      
+    std::string err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, inputfile.c_str());
+      
+    if (!err.empty()) { // `err` may contain warning message.
+      std::cerr << err << std::endl;
+    }
+
+    if (!ret) {
+      exit(1);
+    }
+
+    // Loop over shapes
+    for (size_t s = 0; s < shapes.size(); s++) {
+      // Loop over faces(polygon)
+      size_t index_offset = 0;
+      for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+        int fv = shapes[s].mesh.num_face_vertices[f];
+
+        // Loop over vertices in the face.
+        for (size_t v = 0; v < fv; v++) {
+          // access to vertex
+          tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+          tinyobj::real_t vx = attrib.vertices[3*idx.vertex_index+0];
+          tinyobj::real_t vy = attrib.vertices[3*idx.vertex_index+1];
+          tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
+
+          myvertices[0].push_back(vx+shiftx2-60);
+          myvertices[0].push_back(vy+shifty2);
+          myvertices[0].push_back(vz+shiftz2-60);
+
+          myvertices[1].push_back(vx+shiftx2-60);
+          myvertices[1].push_back(vy+shifty2);
+          myvertices[1].push_back(vz+shiftz2+60);
+
+          myvertices[2].push_back(vx+shiftx2-60);
+          myvertices[2].push_back(vy+shifty2);
+          myvertices[2].push_back(vz+shiftz2);
+
+          myvertices[3].push_back(vx+shiftx2);
+          myvertices[3].push_back(vy+shifty2);
+          myvertices[3].push_back(vz+shiftz2+60);
+
+          myvertices[4].push_back(vx+shiftx2);
+          myvertices[4].push_back(vy+shifty2);
+          myvertices[4].push_back(vz+shiftz2-60);
+
+          myvertices[5].push_back(vx+shiftx2);
+          myvertices[5].push_back(vy+shifty2);
+          myvertices[5].push_back(vz+shiftz2);
+
+          myvertices[6].push_back(vx+shiftx2+60);
+          myvertices[6].push_back(vy+shifty2);
+          myvertices[6].push_back(vz+shiftz2);
+
+          myvertices[7].push_back(vx+shiftx2+60);
+          myvertices[7].push_back(vy+shifty2);
+          myvertices[7].push_back(vz+shiftz2-60);
+
+          myvertices[8].push_back(vx+shiftx2+60);
+          myvertices[8].push_back(vy+shifty2);
+          myvertices[8].push_back(vz+shiftz2+60);
+
+          // tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
+          // tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
+          // tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+          // tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
+          // tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
+          // Optional: vertex colors
+          // tinyobj::real_t red = attrib.colors[3*idx.vertex_index+0];
+          // tinyobj::real_t green = attrib.colors[3*idx.vertex_index+1];
+          // tinyobj::real_t blue = attrib.colors[3*idx.vertex_index+2];
+        }
+        index_offset += fv;
+
+        // per-face material
+        shapes[s].mesh.material_ids[f];
+      }
+    }
+  }
 
   GLuint treevbo[TOTAL_SQUAERS];
   glGenBuffers(TOTAL_SQUAERS, treevbo);
@@ -694,6 +791,25 @@ int main(int argc, char** argv)
   for (int i = 0; i < TOTAL_SQUAERS; i++){
     glBindVertexArray(treevao[i]);
     glBindBuffer(GL_ARRAY_BUFFER, treevbo[i]);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+  }
+
+  GLuint treevbo2[TOTAL_SQUAERS];
+  glGenBuffers(TOTAL_SQUAERS, treevbo2);
+  for (int i = 0; i < TOTAL_SQUAERS; i++){
+    glBindBuffer(GL_ARRAY_BUFFER, treevbo2[i]);
+    glBufferData(GL_ARRAY_BUFFER, myvertices2[i].size() * sizeof(GLfloat), &myvertices2[i][0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+  }
+  
+  GLuint treevao2[TOTAL_SQUAERS];
+  glGenVertexArrays(TOTAL_SQUAERS, treevao2);
+  for (int i = 0; i < TOTAL_SQUAERS; i++){
+    glBindVertexArray(treevao2[i]);
+    glBindBuffer(GL_ARRAY_BUFFER, treevbo2[i]);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -749,6 +865,13 @@ int main(int argc, char** argv)
       glBindVertexArray(treevao[i]);
       glEnableVertexAttribArray(0);
       glDrawArrays(GL_TRIANGLES, 0, myvertices[i].size() / 3);
+      glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
+    }
+
+    for (int i = 0; i < TOTAL_SQUAERS; i++){
+      glBindVertexArray(treevao2[i]);
+      glEnableVertexAttribArray(0);
+      glDrawArrays(GL_TRIANGLES, 0, myvertices2[i].size() / 3);
       glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
     }
 

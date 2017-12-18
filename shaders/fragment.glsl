@@ -38,7 +38,7 @@ void main()
       kd = 0.3;
     }
     vec4 color2 = vec4(kd * texture(ourTexture1, vTexCoords));
-    gl_FragColor = color2;//mix(color2, fogColor, fogAmount);
+    gl_FragColor = mix(color2, fogColor, fogAmount);
   } else {
     vec3 vNormal2 = normalize(vNormal);
     gl_FragColor  = vec4( (vNormal2.x+1.0f)*0.5f, (vNormal2.y+1.0f)*0.5f, (vNormal2.z+1.0f)*0.5f, 1.0f  );
