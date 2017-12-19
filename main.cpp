@@ -27,7 +27,7 @@ GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
 Camera camera(float3(0.0f, 10.0f, 0.0f));
-GLuint texture1;
+GLuint texture1, dragon_texture;
 
 float shiftx = 0;
 float shifty = 0;
@@ -36,6 +36,10 @@ float shiftz = 0;
 float shiftx2 = 0;
 float shifty2 = 0;
 float shiftz2 = 0;
+
+float shift_dragonx = 0;
+float shift_dragony = 0;
+float shift_dragonz = 0;
 
 class DSA {
 private:
@@ -479,6 +483,21 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
   SOIL_free_image_data(image);
   glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
 
+  // ====================
+  // Dragon Texture
+  // ====================
+  glGenTextures(1, &dragon_texture);
+  glBindTexture(GL_TEXTURE_2D, dragon_texture); // All upcoming GL_TEXTURE_2D operations now have effect on our texture object
+  // Load, create texture and generate mipmaps
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // Load, create texture and generate mipmaps
+  int width3, height3;
+  unsigned char* image2 = SOIL_load_image("../textures/Dragon_Bump_Col2.jpg", &width3, &height3, 0, SOIL_LOAD_RGB);GL_CHECK_ERRORS;
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width3, height3, 0, GL_RGB, GL_UNSIGNED_BYTE, image2);GL_CHECK_ERRORS;
+  SOIL_free_image_data(image2);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
 
   GLuint vboVertices, vboIndices, vboNormals, vboTexCoords;
 
@@ -777,6 +796,66 @@ int main(int argc, char** argv)
       }
     }
   }
+  std::vector<GLfloat> dragon_vertices;
+  std::vector<GLfloat> dragon_normals;
+  std::vector<GLfloat> dragon_tex;
+  {
+    std::string inputfile = "dragon.obj";
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+      
+    std::string err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, inputfile.c_str());
+      
+    if (!err.empty()) { // `err` may contain warning message.
+      std::cerr << err << std::endl;
+    }
+
+    if (!ret) {
+      exit(1);
+    }
+
+    // Loop over shapes
+    for (size_t s = 0; s < shapes.size(); s++) {
+      // Loop over faces(polygon)
+      size_t index_offset = 0;
+      for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+        int fv = shapes[s].mesh.num_face_vertices[f];
+
+        // Loop over vertices in the face.
+        for (size_t v = 0; v < fv; v++) {
+          // access to vertex
+          tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+          tinyobj::real_t vx = attrib.vertices[3*idx.vertex_index+0];
+          tinyobj::real_t vy = attrib.vertices[3*idx.vertex_index+1];
+          tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
+
+          dragon_vertices.push_back(vx);
+          dragon_vertices.push_back(vy+5);
+          dragon_vertices.push_back(vz);
+
+          tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
+          tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
+          tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+
+          dragon_normals.push_back(nx);
+          dragon_normals.push_back(ny);
+          dragon_normals.push_back(nz);
+
+          tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
+          tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
+
+          dragon_tex.push_back(tx);
+          dragon_tex.push_back(1-ty);
+        }
+        index_offset += fv;
+
+        // per-face material
+        shapes[s].mesh.material_ids[f];
+      }
+    }
+  }
 
   GLuint treevbo[TOTAL_SQUAERS];
   glGenBuffers(TOTAL_SQUAERS, treevbo);
@@ -815,6 +894,46 @@ int main(int argc, char** argv)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
   }
+
+  GLuint dragon_vbo, dragon_n_vbo, dragon_t_vbo;
+  glGenBuffers(1, &dragon_vbo);
+  glGenBuffers(1, &dragon_n_vbo);
+  glGenBuffers(1, &dragon_t_vbo);
+  
+  glBindBuffer(GL_ARRAY_BUFFER, dragon_vbo);
+  glBufferData(GL_ARRAY_BUFFER, dragon_vertices.size() * sizeof(GLfloat), &dragon_vertices[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, dragon_n_vbo);
+  glBufferData(GL_ARRAY_BUFFER, dragon_normals.size() * sizeof(GLfloat), &dragon_normals[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  
+  glBindBuffer(GL_ARRAY_BUFFER, dragon_t_vbo);
+  glBufferData(GL_ARRAY_BUFFER, dragon_tex.size() * sizeof(GLfloat), &dragon_tex[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  
+  GLuint dragon_vao;
+  glGenVertexArrays(1, &dragon_vao);
+  glBindVertexArray(dragon_vao);
+
+  glBindBuffer(GL_ARRAY_BUFFER, dragon_vbo); GL_CHECK_ERRORS;
+  glBufferData(GL_ARRAY_BUFFER, dragon_vertices.size() * sizeof(GL_FLOAT), &dragon_vertices[0], GL_STATIC_DRAW); GL_CHECK_ERRORS;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), (GLvoid*)0); GL_CHECK_ERRORS;
+  glEnableVertexAttribArray(0); GL_CHECK_ERRORS;
+
+  //передаем в шейдерную программу атрибут нормалей
+  glBindBuffer(GL_ARRAY_BUFFER, dragon_n_vbo); GL_CHECK_ERRORS;
+  glBufferData(GL_ARRAY_BUFFER, dragon_normals.size() * sizeof(GL_FLOAT), &dragon_normals[0], GL_STATIC_DRAW); GL_CHECK_ERRORS;
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), (GLvoid*)0); GL_CHECK_ERRORS;
+  glEnableVertexAttribArray(1); GL_CHECK_ERRORS;
+
+  //передаем в шейдерную программу атрибут текстурных координат
+  glBindBuffer(GL_ARRAY_BUFFER, dragon_t_vbo); GL_CHECK_ERRORS;
+  glBufferData(GL_ARRAY_BUFFER, dragon_tex.size() * sizeof(GL_FLOAT), &dragon_tex[0], GL_STATIC_DRAW); GL_CHECK_ERRORS;
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GL_FLOAT), (GLvoid*)0); GL_CHECK_ERRORS;
+  glEnableVertexAttribArray(2); GL_CHECK_ERRORS;
+
+  glBindVertexArray(0);
 
 
 	//цикл обработки сообщений и отрисовки сцены каждый кадр
@@ -874,6 +993,14 @@ int main(int argc, char** argv)
       glDrawArrays(GL_TRIANGLES, 0, myvertices2[i].size() / 3);
       glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
     }
+
+    glBindTexture(GL_TEXTURE_2D, dragon_texture);
+    glUniform1i(glGetUniformLocation(program.GetProgram(), "ourTexture1"), 0);
+
+    glBindVertexArray(dragon_vao);
+    glEnableVertexAttribArray(0);
+    glDrawArrays(GL_TRIANGLES, 0, dragon_vertices.size() / 3);
+    glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
 
     program.StopUseShader();
 
