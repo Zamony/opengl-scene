@@ -625,7 +625,7 @@ int main(int argc, char** argv)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   std::array<std::vector<GLfloat>, TOTAL_SQUAERS> myvertices;
-  std::array<std::vector<GLfloat>, TOTAL_SQUAERS> myvertices2;
+  std::vector<GLfloat> myvertices_normals;
   {
     std::string inputfile = "tree_good.obj";
     tinyobj::attrib_t attrib;
@@ -694,9 +694,12 @@ int main(int argc, char** argv)
           myvertices[8].push_back(vy+shifty);
           myvertices[8].push_back(vz+shiftz+60);
 
-          // tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
-          // tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
-          // tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+          tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
+          tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
+          tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+          myvertices_normals.push_back(nx);
+          myvertices_normals.push_back(ny);
+          myvertices_normals.push_back(nz);
           // tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
           // tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
           // Optional: vertex colors
@@ -779,9 +782,12 @@ int main(int argc, char** argv)
           myvertices[8].push_back(vy+shifty2);
           myvertices[8].push_back(vz+shiftz2+60);
 
-          // tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
-          // tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
-          // tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+          tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
+          tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
+          tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+          myvertices_normals.push_back(nx);
+          myvertices_normals.push_back(ny);
+          myvertices_normals.push_back(nz);
           // tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
           // tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
           // Optional: vertex colors
@@ -857,8 +863,13 @@ int main(int argc, char** argv)
     }
   }
 
-  GLuint treevbo[TOTAL_SQUAERS];
+  GLuint treevbo[TOTAL_SQUAERS], tree_n_vbo;
   glGenBuffers(TOTAL_SQUAERS, treevbo);
+  glGenBuffers(1, &tree_n_vbo);
+  
+  glBindBuffer(GL_ARRAY_BUFFER, tree_n_vbo);
+  glBufferData(GL_ARRAY_BUFFER, myvertices_normals.size() * sizeof(GLfloat), &myvertices_normals[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
   for (int i = 0; i < TOTAL_SQUAERS; i++){
     glBindBuffer(GL_ARRAY_BUFFER, treevbo[i]);
     glBufferData(GL_ARRAY_BUFFER, myvertices[i].size() * sizeof(GLfloat), &myvertices[i][0], GL_STATIC_DRAW);
@@ -870,28 +881,15 @@ int main(int argc, char** argv)
   for (int i = 0; i < TOTAL_SQUAERS; i++){
     glBindVertexArray(treevao[i]);
     glBindBuffer(GL_ARRAY_BUFFER, treevbo[i]);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), nullptr);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-  }
+    glEnableVertexAttribArray(0);
 
-  GLuint treevbo2[TOTAL_SQUAERS];
-  glGenBuffers(TOTAL_SQUAERS, treevbo2);
-  for (int i = 0; i < TOTAL_SQUAERS; i++){
-    glBindBuffer(GL_ARRAY_BUFFER, treevbo2[i]);
-    glBufferData(GL_ARRAY_BUFFER, myvertices2[i].size() * sizeof(GLfloat), &myvertices2[i][0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, tree_n_vbo);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), nullptr);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-  }
-  
-  GLuint treevao2[TOTAL_SQUAERS];
-  glGenVertexArrays(TOTAL_SQUAERS, treevao2);
-  for (int i = 0; i < TOTAL_SQUAERS; i++){
-    glBindVertexArray(treevao2[i]);
-    glBindBuffer(GL_ARRAY_BUFFER, treevbo2[i]);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
   }
 
@@ -984,13 +982,6 @@ int main(int argc, char** argv)
       glBindVertexArray(treevao[i]);
       glEnableVertexAttribArray(0);
       glDrawArrays(GL_TRIANGLES, 0, myvertices[i].size() / 3);
-      glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
-    }
-
-    for (int i = 0; i < TOTAL_SQUAERS; i++){
-      glBindVertexArray(treevao2[i]);
-      glEnableVertexAttribArray(0);
-      glDrawArrays(GL_TRIANGLES, 0, myvertices2[i].size() / 3);
       glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
     }
 

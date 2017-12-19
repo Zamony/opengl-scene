@@ -1,6 +1,6 @@
 #version 330 core
 
-#define FOG_DENSITY 0.05
+#define FOG_DENSITY 0.08
 
 in vec3 vFragPosition;
 in vec2 vTexCoords;
