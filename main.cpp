@@ -41,6 +41,8 @@ float shift_dragonx = 0;
 float shift_dragony = 0;
 float shift_dragonz = 0;
 
+bool is_crossed = false;
+
 class DSA {
 private:
     std::vector<float> values;
@@ -242,21 +244,25 @@ void doCameraMovement(Camera &camera, GLfloat deltaTime)
   if ( camera.pos.z > 360/(2*6.0f) ){
     camera.pos.z = camera.pos.z - 360/6.0f;
     deltaTime += 0.06;
+    is_crossed = true;
   }
 
   if ( camera.pos.x > 360/(2*6.0f) ){
     camera.pos.x = camera.pos.x - 360/6.0f;
     deltaTime += 0.06;
+    is_crossed = true;
   }
 
   if ( camera.pos.z < -360/(2*6.0f) ){
     camera.pos.z = camera.pos.z + 360/6.0f;
     deltaTime += 0.06;
+    is_crossed = true;
   }
 
   if ( camera.pos.x < -360/(2*6.0f) ){
     camera.pos.x = camera.pos.x + 360/6.0f;
     deltaTime += 0.06;
+    bool is_crossed = true;
   }
 
   if (keys[GLFW_KEY_W])
@@ -985,13 +991,16 @@ int main(int argc, char** argv)
       glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
     }
 
-    glBindTexture(GL_TEXTURE_2D, dragon_texture);
-    glUniform1i(glGetUniformLocation(program.GetProgram(), "ourTexture1"), 0);
+    program.SetUniform("is_grass", 0);
+    if ( !is_crossed ){
+      glBindTexture(GL_TEXTURE_2D, dragon_texture);
+      glUniform1i(glGetUniformLocation(program.GetProgram(), "ourTexture1"), 0);
 
-    glBindVertexArray(dragon_vao);
-    glEnableVertexAttribArray(0);
-    glDrawArrays(GL_TRIANGLES, 0, dragon_vertices.size() / 3);
-    glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
+      glBindVertexArray(dragon_vao);
+      glEnableVertexAttribArray(0);
+      glDrawArrays(GL_TRIANGLES, 0, dragon_vertices.size() / 3);
+      glDisableVertexAttribArray(0); GL_CHECK_ERRORS;
+    }
 
     program.StopUseShader();
 

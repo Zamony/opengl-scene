@@ -35,7 +35,7 @@ void main()
     float fogAmount = fog_exp2(fogDistance, FOG_DENSITY);
     vec4 fogColor = vec4(1.0, 1.0, 1.0, 1.0); // white
     if ( is_grass == 1 ){
-      kd = 0.3;
+      //kd = 0.3;
     }
     vec4 color2 = vec4(kd * texture(ourTexture1, vTexCoords));
     gl_FragColor = mix(color2, fogColor, fogAmount);
