@@ -752,6 +752,7 @@ int main(int argc, char** argv)
   std::vector<GLfloat> dragon_normals;
   std::vector<GLfloat> dragon_tex;
   {
+    float dragon_shift = argc == 1 ? 3.5 : atof(argv[1]);
     std::string inputfile = "../objects/dragon.obj";
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -784,7 +785,7 @@ int main(int argc, char** argv)
           tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
 
           dragon_vertices.push_back(vx);
-          dragon_vertices.push_back(vy+3.6);
+          dragon_vertices.push_back(vy + dragon_shift);
           dragon_vertices.push_back(vz);
 
           tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
