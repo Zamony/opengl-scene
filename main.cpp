@@ -481,7 +481,7 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   // Load, create texture and generate mipmaps
   int width, height;
-  unsigned char* image = SOIL_load_image("grass.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+  unsigned char* image = SOIL_load_image("../textures/grass.jpg", &width, &height, 0, SOIL_LOAD_RGB);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
   glGenerateMipmap(GL_TEXTURE_2D);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -633,7 +633,7 @@ int main(int argc, char** argv)
   std::array<std::vector<GLfloat>, TOTAL_SQUAERS> myvertices;
   std::vector<GLfloat> myvertices_normals;
   {
-    std::string inputfile = "tree_good.obj";
+    std::string inputfile = "../objects/tree_good.obj";
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -721,7 +721,7 @@ int main(int argc, char** argv)
     }
   }
   {
-    std::string inputfile = "bush.obj";
+    std::string inputfile = "../objects/bush.obj";
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -812,7 +812,7 @@ int main(int argc, char** argv)
   std::vector<GLfloat> dragon_normals;
   std::vector<GLfloat> dragon_tex;
   {
-    std::string inputfile = "dragon.obj";
+    std::string inputfile = "../objects/dragon.obj";
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
