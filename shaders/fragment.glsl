@@ -37,7 +37,12 @@ void main()
     if ( is_grass == 1 ){
       kd = kd - 0.1;
     }
-    vec4 color2 = vec4(kd * texture(ourTexture1, vTexCoords));
+    vec4 color2;
+    if ( vFragPosition.y < 2 && vFragPosition.y > - 2){
+      color2 = vec4(kd * vec3(0.8, 0.8, 1), 1.0f);
+    } else {
+      color2 = vec4(kd * texture(ourTexture1, vTexCoords));
+    }
     gl_FragColor = mix(color2, fogColor, fogAmount);
   } else {
     vec3 vNormal2 = normalize(vNormal);
