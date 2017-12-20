@@ -37,70 +37,55 @@ float shiftx2 = 0;
 float shifty2 = 0;
 float shiftz2 = 0;
 
-float shift_dragonx = 0;
-float shift_dragony = 0;
-float shift_dragonz = 0;
-
 bool is_crossed = false;
 
 class DSA {
 private:
     std::vector<float> values;
     
-    void setSample(int x, int y, float value)
-    {
+    void set(int x, int y, float value){
         values[(x % (size - 1)) + (y % (size - 1)) * size] = value;
     }
 
-    float frand(){
+    float rand1(){
         return (rand()/(float)(RAND_MAX)) * 2 - 1;
     }
 
-    void sampleSquare(int x, int y, int size, float value)
-    {
+    void square_step(int x, int y, int size, float value){
         int hs = size / 2;
     
-        float a = sample(x - hs, y - hs);
-        float b = sample(x + hs, y - hs);
-        float c = sample(x - hs, y + hs);
-        float d = sample(x + hs, y + hs);
+        float a = get(x - hs, y - hs);
+        float b = get(x + hs, y - hs);
+        float c = get(x - hs, y + hs);
+        float d = get(x + hs, y + hs);
     
-        setSample(x, y, ((a + b + c + d) / 4.0) + value);
-    
+        set(x, y, ((a + b + c + d) / 4.0) + value);
     }
     
-    void sampleDiamond(int x, int y, int size, float value)
-    {
+    void diamond_step(int x, int y, int size, float value){
         int hs = size / 2;
     
-        float a = sample(x - hs, y);
-        float b = sample(x + hs, y);
-        float c = sample(x, y - hs);
-        float d = sample(x, y + hs);
+        float a = get(x - hs, y);
+        float b = get(x + hs, y);
+        float c = get(x, y - hs);
+        float d = get(x, y + hs);
     
-        setSample(x, y, ((a + b + c + d) / 4.0) + value);
+        set(x, y, ((a + b + c + d) / 4.0) + value);
     }
 
-    void DiamondSquare(int stepsize, float scale)
-    {
+    void ds_step(int stepsize, float scale){
     
         int halfstep = stepsize / 2;
     
         for (int y = halfstep; y < size + halfstep; y += stepsize)
-        {
-            for (int x = halfstep; x < size + halfstep; x += stepsize)
-            {
-                sampleSquare(x, y, stepsize, frand() * scale);
-            }
-        }
+          for (int x = halfstep; x < size + halfstep; x += stepsize)
+              square_step(x, y, stepsize, rand1() * scale);
     
-        for (int y = 0; y < size; y += stepsize)
-        {
-            for (int x = 0; x < size; x += stepsize)
-            {
-                sampleDiamond(x + halfstep, y, stepsize, frand() * scale);
-                sampleDiamond(x, y + halfstep, stepsize, frand() * scale);
-            }
+        for (int y = 0; y < size; y += stepsize){
+          for (int x = 0; x < size; x += stepsize){
+              diamond_step(x + halfstep, y, stepsize, rand1() * scale);
+              diamond_step(x, y + halfstep, stepsize, rand1() * scale);
+          }
         }
     
     }
@@ -112,26 +97,22 @@ public:
     }
 
     void generateTerrain(){
-        srand(0);
+      srand(0);
 
-        const int featuresize = size;
-        for( int y = 0; y < size; y += featuresize)
-            for (int x = 0; x < size; x += featuresize)
-                setSample(x, y, frand());
+      // Инициализируем угловое значение, остальные нули
+      set(0, 0, rand1());
 
-        int samplesize = size;
-        float scale = 1.0;
-        while (samplesize > 1)
-        {
-        
-            DiamondSquare(samplesize, scale);
-        
-            samplesize /= 2;
-            scale /= 2.0;
-        }
+      int squaresize = size;
+      float scale = 1.0;
+      while (squaresize > 1){        
+        ds_step(squaresize, scale);
+    
+        squaresize /= 2;
+        scale /= 2.0;
+      }
     }
 
-    float sample(int x, int y){
+    float get(int x, int y){
         return values[(x % (size - 1)) + (y % (size - 1)) * size];
     }
 
@@ -139,15 +120,15 @@ public:
       float maxp = 0;
       for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
-          float val = abs(sample(i, j));
+          float val = abs(get(i, j));
           maxp = std::max( val, maxp );
         }
       }
 
       for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
-          float val = sample(i, j) / maxp;
-          setSample(i, j, val*val);
+          float val = get(i, j) / maxp;
+          set(i, j, val*val);
         }
       }
     }
@@ -319,11 +300,9 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
       //вычисляем координаты каждой из вершин 
       float xx = -size / 2 + x*size / cols;
       float zz = -size / 2 + z*size / rows;
-      // float yy = -1.0f;
-      //float r = sqrt(xx*xx + zz*zz);
 
       const float eps = 1e-4;
-      float yy = 4.8f * dsa.sample(x, z);//5.0f * (r != 0.0f ? sin(r) / r : 1.0f);
+      float yy = 4.8f * dsa.get(x, z);//5.0f * (r != 0.0f ? sin(r) / r : 1.0f);
       if ( !shrub_set && abs(xx) < 20 && abs(zz) < 20 ){
         shifty = yy;
         shiftx = xx;
@@ -345,26 +324,6 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
       texcoords_vec.push_back(z / float(rows - 1) * rows); // аналогично вычисляем вторую текстурную координату v
     }
   }
-
-  // for (int z = 0; z < rows; ++z)
-  // {
-  //   for (int x = 0; x < cols; ++x)
-  //   {
-  //     //вычисляем координаты каждой из вершин 
-  //     float xx = -size + -size/2 + x*size / cols;
-  //     float zz = -size + -size / 2 + z*size / rows;
-  //     // float yy = -1.0f;
-  //     //float r = sqrt(xx*xx + zz*zz);
-  //     float yy = 4.8f * dsa.sample(x, z);//5.0f * (r != 0.0f ? sin(r) / r : 1.0f);
-
-  //     vertices_vec.push_back(xx);
-  //     vertices_vec.push_back(yy);
-  //     vertices_vec.push_back(zz);
-
-  //     texcoords_vec.push_back(x / float(cols - 1) * cols); // вычисляем первую текстурную координату u, для плоскости это просто относительное положение вершины
-  //     texcoords_vec.push_back(z / float(rows - 1) * rows); // аналогично вычисляем вторую текстурную координату v
-  //   }
-  // }
 
   //primitive restart - специальный индекс, который обозначает конец строки из треугольников в triangle_strip
   //после этого индекса формирование треугольников из массива индексов начнется заново - будут взяты следующие 3 индекса для первого треугольника
@@ -468,18 +427,13 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
     normals_vec.push_back(N.z);
   }
 
-  // ====================
-  // Texture 1
-  // ====================
+  // Текстура травы
   glGenTextures(1, &texture1);
-  glBindTexture(GL_TEXTURE_2D, texture1); // All upcoming GL_TEXTURE_2D operations now have effect on our texture object
-  // Set our texture parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// Set texture wrapping to GL_REPEAT
+  glBindTexture(GL_TEXTURE_2D, texture1);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // Set texture filtering
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  // Load, create texture and generate mipmaps
   int width, height;
   unsigned char* image = SOIL_load_image("../textures/grass.jpg", &width, &height, 0, SOIL_LOAD_RGB);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
@@ -487,17 +441,13 @@ static int createTriStrip(int rows, int cols, float size, GLuint &vao)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   SOIL_free_image_data(image);
-  glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
+  glBindTexture(GL_TEXTURE_2D, 0);
 
-  // ====================
-  // Dragon Texture
-  // ====================
+  // Текстура дракона
   glGenTextures(1, &dragon_texture);
-  glBindTexture(GL_TEXTURE_2D, dragon_texture); // All upcoming GL_TEXTURE_2D operations now have effect on our texture object
-  // Load, create texture and generate mipmaps
+  glBindTexture(GL_TEXTURE_2D, dragon_texture);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  // Load, create texture and generate mipmaps
   int width3, height3;
   unsigned char* image2 = SOIL_load_image("../textures/Dragon_Bump_Col2.jpg", &width3, &height3, 0, SOIL_LOAD_RGB);GL_CHECK_ERRORS;
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width3, height3, 0, GL_RGB, GL_UNSIGNED_BYTE, image2);GL_CHECK_ERRORS;
@@ -630,6 +580,8 @@ int main(int argc, char** argv)
   glEnable(GL_DEPTH_TEST);  GL_CHECK_ERRORS;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+  // Считывания объектов
   std::array<std::vector<GLfloat>, TOTAL_SQUAERS> myvertices;
   std::vector<GLfloat> myvertices_normals;
   {
@@ -706,12 +658,6 @@ int main(int argc, char** argv)
           myvertices_normals.push_back(nx);
           myvertices_normals.push_back(ny);
           myvertices_normals.push_back(nz);
-          // tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
-          // tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
-          // Optional: vertex colors
-          // tinyobj::real_t red = attrib.colors[3*idx.vertex_index+0];
-          // tinyobj::real_t green = attrib.colors[3*idx.vertex_index+1];
-          // tinyobj::real_t blue = attrib.colors[3*idx.vertex_index+2];
         }
         index_offset += fv;
 
@@ -794,12 +740,6 @@ int main(int argc, char** argv)
           myvertices_normals.push_back(nx);
           myvertices_normals.push_back(ny);
           myvertices_normals.push_back(nz);
-          // tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
-          // tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
-          // Optional: vertex colors
-          // tinyobj::real_t red = attrib.colors[3*idx.vertex_index+0];
-          // tinyobj::real_t green = attrib.colors[3*idx.vertex_index+1];
-          // tinyobj::real_t blue = attrib.colors[3*idx.vertex_index+2];
         }
         index_offset += fv;
 
@@ -844,7 +784,7 @@ int main(int argc, char** argv)
           tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
 
           dragon_vertices.push_back(vx);
-          dragon_vertices.push_back(vy+5);
+          dragon_vertices.push_back(vy+3.6);
           dragon_vertices.push_back(vz);
 
           tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
@@ -868,6 +808,7 @@ int main(int argc, char** argv)
       }
     }
   }
+  // Закончилось считывание объектов
 
   GLuint treevbo[TOTAL_SQUAERS], tree_n_vbo;
   glGenBuffers(TOTAL_SQUAERS, treevbo);
@@ -992,6 +933,7 @@ int main(int argc, char** argv)
     }
 
     program.SetUniform("is_grass", 0);
+    // Дракон волшебный - он исчезает, как только мы выходим за пределы области
     if ( !is_crossed ){
       glBindTexture(GL_TEXTURE_2D, dragon_texture);
       glUniform1i(glGetUniformLocation(program.GetProgram(), "ourTexture1"), 0);

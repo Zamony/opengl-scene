@@ -1,6 +1,6 @@
 #version 330 core
 
-#define FOG_DENSITY 0.01
+#define FOG_DENSITY 0.08
 
 in vec3 vFragPosition;
 in vec2 vTexCoords;
@@ -33,7 +33,7 @@ void main()
   if (draw_normals == 0){
     float fogDistance = gl_FragCoord.z / gl_FragCoord.w;
     float fogAmount = fog_exp2(fogDistance, FOG_DENSITY);
-    vec4 fogColor = vec4(1.0, 1.0, 1.0, 1.0); // white
+    vec4 fogColor = vec4(0.92, 0.92, 0.92, 1.0);
     if ( is_grass == 1 ){
       kd = kd - 0.1;
     }

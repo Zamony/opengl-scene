@@ -2,6 +2,8 @@
 
 !.gitignore
 !main.cpp
+!tiny_obj_loader.h
+!CMakeLists.txt
 !shaders
 !objects
 !textures
